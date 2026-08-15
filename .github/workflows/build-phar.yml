@@ -1,4 +1,4 @@
-name: Build Nil Phar
+name: Build other Phar
 
 on:
   release:
@@ -16,6 +16,10 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [ http, uid ]
 
     steps:
       - name: Checkout code
@@ -31,27 +35,23 @@ jobs:
 
       - name: Install dependencies
         run: composer install --no-dev --optimize-autoloader
-        working-directory: ./src/nil
+        working-directory: ./src/${{ matrix.package }}
 
       - name: Download nilpack.phar
         run: curl -fL --retry 3 -o nilpack.phar https://github.com/php-nil/nilpack/releases/latest/download/nilpack.phar
-        working-directory: ./src/nil
-
-      - name: Download Nil.php
-        run: curl -fL --retry 3 -o Nil.php https://github.com/php-nil/nil/releases/latest/download/Nil.php
-        working-directory: ./src/nil
+        working-directory: ./src/${{ matrix.package }}
 
       - name: Build phar
         run: php nilpack.phar composer
-        working-directory: ./src/nil
+        working-directory: ./src/${{ matrix.package }}
 
       - name: List built artifacts
         run: ls -la nil-phar-runtime/
-        working-directory: ./src/nil
+        working-directory: ./src/${{ matrix.package }}
 
-      - name: Package vendor as nil.tar.gz
-        run: tar -czf nil.tar.gz -C nil-phar-runtime vendor
-        working-directory: ./src/nil
+      - name: Package vendor as ${{ matrix.package }}.tar.gz
+        run: tar -czf ${{ matrix.package }}.tar.gz -C nil-phar-runtime vendor
+        working-directory: ./src/${{ matrix.package }}
 
       - name: Resolve target tag
         id: tag
@@ -66,12 +66,12 @@ jobs:
           fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
-      - name: Upload phar and nil.gz to release
+      - name: Upload ${{ matrix.package }} phar and tarball to release
         if: ${{ steps.tag.outputs.tag != '' }}
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
-          working_directory: src/nil
+          working_directory: src/${{ matrix.package }}
           files: |
             nil-phar-runtime/*.phar
-            nil.tar.gz
+            ${{ matrix.package }}.tar.gz

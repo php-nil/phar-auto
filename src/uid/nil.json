@@ -1,0 +1,8 @@
+{
+    "packages": {
+        "uid": [
+            "symfony/uid",
+            "symfony/polyfill-uuid"
+        ]
+    }
+}

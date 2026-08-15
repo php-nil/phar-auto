@@ -13,6 +13,8 @@
             "psr/log",
             "psr/clock",
             "psr/simple-cache",
+            "nyholm/psr7",
+            "symfony/psr-http-message-bridge",
             "symfony/contracts",
             "symfony/string",
             "symfony/cache",

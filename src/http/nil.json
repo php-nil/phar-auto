@@ -1,0 +1,16 @@
+{
+    "packages": {
+        "http": [
+            "symfony/http-client",
+            "php-http/discovery",
+            "php-http/multipart-stream-builder"
+        ]
+    },
+    "notuse": [
+        "psr/http-factory-implementation",
+        "psr/log",
+        "symfony/deprecation-contracts",
+        "symfony/http-client-contracts",
+        "symfony/service-contracts"
+    ]
+}
