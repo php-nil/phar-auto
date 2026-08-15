@@ -1,0 +1,53 @@
+name: Build Nil Phar
+
+on:
+  release:
+    types: [ created ]
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: phar
+          ini-values: phar.readonly=0
+          tools: composer
+
+      - name: Install dependencies
+        run: composer install --no-dev --optimize-autoloader
+        working-directory: ./src/nil
+
+      - name: Download nilpack.phar
+        run: curl -fL --retry 3 -o nilpack.phar https://github.com/php-nil/nilpack/releases/latest/download/nilpack.phar
+        working-directory: ./src/nil
+
+      - name: Download Nil.php
+        run: curl -fL --retry 3 -o Nil.php https://github.com/php-nil/nil/releases/latest/download/Nil.php
+        working-directory: ./src/nil
+
+      - name: Build phar
+        run: php nilpack.phar composer
+        working-directory: ./src/nil
+
+      - name: List built phar
+        run: ls -la nil-phar-runtime/
+        working-directory: ./src/nil
+
+      - name: Upload phar to release
+        if: ${{ github.event_name == 'release' || startsWith(github.ref, 'refs/tags/') }}
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ./src/nil/nil-phar-runtime/*.phar
