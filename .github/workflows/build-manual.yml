@@ -8,11 +8,6 @@ on:
         required: true
         default: 'custom'
         type: string
-      artifact_name:
-        description: 'Artifact download name'
-        required: true
-        default: 'phar-build-output'
-        type: string
       composer_json_mode:
         description: 'How to provide composer.json'
         required: true
@@ -149,7 +144,7 @@ jobs:
       - name: Upload phar artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ inputs.package_name }}-phar
+          name: ${{ inputs.package_name }}-phar.zip
           path: build/output/*.phar
           if-no-files-found: error
           retention-days: 30
@@ -157,7 +152,7 @@ jobs:
       - name: Upload vendor tarball
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ inputs.package_name }}-vendor
+          name: ${{ inputs.package_name }}-vendor.zip
           path: build/output/${{ inputs.package_name }}.tar.gz
           if-no-files-found: error
           retention-days: 30
