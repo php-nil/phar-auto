@@ -34,7 +34,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Create build directory
         run: mkdir -p "$BUILD_DIR" "$BUILD_DIR/output"
@@ -112,7 +112,7 @@ jobs:
           echo "---------------"
 
       - name: Upload phar artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.package_name }}-phar.zip
           path: build/output/*.phar
@@ -120,7 +120,7 @@ jobs:
           retention-days: 30
 
       - name: Upload vendor tarball
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.package_name }}-vendor.zip
           path: build/output/${{ inputs.package_name }}.tar.gz
