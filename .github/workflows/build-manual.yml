@@ -1,0 +1,135 @@
+name: Manual Build Phar
+
+on:
+  workflow_dispatch:
+    inputs:
+      package_name:
+        description: 'Package name (used for tarball filename)'
+        required: true
+        default: 'custom'
+        type: string
+      artifact_name:
+        description: 'Artifact download name'
+        required: true
+        default: 'phar-build-output'
+        type: string
+      composer_json_mode:
+        description: 'How to provide composer.json'
+        required: true
+        default: 'inline'
+        type: choice
+        options:
+          - inline
+          - url
+      composer_json_content:
+        description: 'composer.json content (mode=inline)'
+        required: false
+        type: string
+      composer_json_url:
+        description: 'composer.json URL (mode=url)'
+        required: false
+        type: string
+      nil_json_mode:
+        description: 'How to provide nil.json'
+        required: true
+        default: 'inline'
+        type: choice
+        options:
+          - inline
+          - url
+      nil_json_content:
+        description: 'nil.json content (mode=inline)'
+        required: false
+        type: string
+      nil_json_url:
+        description: 'nil.json URL (mode=url)'
+        required: false
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      BUILD_DIR: build
+      PKG: ${{ inputs.package_name }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate inputs
+        run: |
+          set -euo pipefail
+          [ "${{ inputs.composer_json_mode }}" = "inline" ] && [ -z "${{ inputs.composer_json_content }}" ] && { echo "composer_json_content is required when composer_json_mode=inline"; exit 1; } || true
+          [ "${{ inputs.composer_json_mode }}" = "url" ] && [ -z "${{ inputs.composer_json_url }}" ] && { echo "composer_json_url is required when composer_json_mode=url"; exit 1; } || true
+          [ "${{ inputs.nil_json_mode }}" = "inline" ] && [ -z "${{ inputs.nil_json_content }}" ] && { echo "nil_json_content is required when nil_json_mode=inline"; exit 1; } || true
+          [ "${{ inputs.nil_json_mode }}" = "url" ] && [ -z "${{ inputs.nil_json_url }}" ] && { echo "nil_json_url is required when nil_json_mode=url"; exit 1; } || true
+
+      - name: Create build directory
+        run: mkdir -p "$BUILD_DIR"
+
+      - name: Provide composer.json
+        run: |
+          set -euo pipefail
+          if [ "${{ inputs.composer_json_mode }}" = "inline" ]; then
+            cat > "$BUILD_DIR/composer.json" <<'COMPOSER_JSON_EOF'
+          ${{ inputs.composer_json_content }}
+          COMPOSER_JSON_EOF
+          else
+            curl -fL --retry 3 -o "$BUILD_DIR/composer.json" "${{ inputs.composer_json_url }}"
+          fi
+          echo "--- composer.json ---"
+          cat "$BUILD_DIR/composer.json"
+          echo "--------------------"
+
+      - name: Provide nil.json
+        run: |
+          set -euo pipefail
+          if [ "${{ inputs.nil_json_mode }}" = "inline" ]; then
+            cat > "$BUILD_DIR/nil.json" <<'NIL_JSON_EOF'
+          ${{ inputs.nil_json_content }}
+          NIL_JSON_EOF
+          else
+            curl -fL --retry 3 -o "$BUILD_DIR/nil.json" "${{ inputs.nil_json_url }}"
+          fi
+          echo "--- nil.json ---"
+          cat "$BUILD_DIR/nil.json"
+          echo "-----------------"
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: phar
+          ini-values: phar.readonly=0
+          tools: composer
+
+      - name: Install dependencies
+        run: composer install --no-dev --optimize-autoloader
+        working-directory: ${{ env.BUILD_DIR }}
+
+      - name: Download nilpack.phar
+        run: curl -fL --retry 3 -o nilpack.phar https://github.com/php-nil/nilpack/releases/latest/download/nilpack.phar
+        working-directory: ${{ env.BUILD_DIR }}
+
+      - name: Build phar
+        run: php nilpack.phar composer
+        working-directory: ${{ env.BUILD_DIR }}
+
+      - name: List built artifacts
+        run: ls -la nil-phar-runtime/
+        working-directory: ${{ env.BUILD_DIR }}
+
+      - name: Package vendor as tarball
+        run: tar -czf "$PKG.tar.gz" -C nil-phar-runtime vendor
+        working-directory: ${{ env.BUILD_DIR }}
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: |
+            build/nil-phar-runtime/*.phar
+            build/${{ inputs.package_name }}.tar.gz
+          if-no-files-found: error
+          retention-days: 30
