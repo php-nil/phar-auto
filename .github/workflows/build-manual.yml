@@ -131,15 +131,16 @@ jobs:
         working-directory: ${{ env.BUILD_DIR }}
 
       - name: Collect output files
+        working-directory: ${{ env.BUILD_DIR }}
         run: |
           set -euo pipefail
-          cp -v nil-phar-runtime/*.phar output/ 2>/dev/null || true
-          shopt -s nullglob dotglob
+          shopt -s nullglob
           phars=(nil-phar-runtime/*.phar)
           if [ ${#phars[@]} -eq 0 ]; then
             echo "::error::No .phar file produced in nil-phar-runtime/"
             exit 1
           fi
+          cp -v "${phars[@]}" output/
           tar -czf "output/${PKG}.tar.gz" -C nil-phar-runtime vendor
           echo "--- output/ ---"
           ls -la output/
