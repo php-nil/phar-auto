@@ -16,33 +16,33 @@ on:
       composer_json_mode:
         description: 'How to provide composer.json'
         required: true
-        default: 'inline'
+        default: 'url'
         type: choice
         options:
-          - inline
           - url
-      composer_json_content:
-        description: 'composer.json content (mode=inline)'
+          - inline
+      composer_json_url:
+        description: 'composer.json URL (mode=url) - recommended for multi-line JSON'
         required: false
         type: string
-      composer_json_url:
-        description: 'composer.json URL (mode=url)'
+      composer_json_content:
+        description: 'composer.json content (mode=inline, single-line JSON only)'
         required: false
         type: string
       nil_json_mode:
         description: 'How to provide nil.json'
         required: true
-        default: 'inline'
+        default: 'url'
         type: choice
         options:
-          - inline
           - url
-      nil_json_content:
-        description: 'nil.json content (mode=inline)'
+          - inline
+      nil_json_url:
+        description: 'nil.json URL (mode=url) - recommended for multi-line JSON'
         required: false
         type: string
-      nil_json_url:
-        description: 'nil.json URL (mode=url)'
+      nil_json_content:
+        description: 'nil.json content (mode=inline, single-line JSON only)'
         required: false
         type: string
 
@@ -60,40 +60,50 @@ jobs:
       - name: Validate inputs
         run: |
           set -euo pipefail
-          [ "${{ inputs.composer_json_mode }}" = "inline" ] && [ -z "${{ inputs.composer_json_content }}" ] && { echo "composer_json_content is required when composer_json_mode=inline"; exit 1; } || true
-          [ "${{ inputs.composer_json_mode }}" = "url" ] && [ -z "${{ inputs.composer_json_url }}" ] && { echo "composer_json_url is required when composer_json_mode=url"; exit 1; } || true
-          [ "${{ inputs.nil_json_mode }}" = "inline" ] && [ -z "${{ inputs.nil_json_content }}" ] && { echo "nil_json_content is required when nil_json_mode=inline"; exit 1; } || true
-          [ "${{ inputs.nil_json_mode }}" = "url" ] && [ -z "${{ inputs.nil_json_url }}" ] && { echo "nil_json_url is required when nil_json_mode=url"; exit 1; } || true
+          if [ "${{ inputs.composer_json_mode }}" = "inline" ] && [ -z "${{ inputs.composer_json_content }}" ]; then
+            echo "::error::composer_json_content is required when composer_json_mode=inline"
+            exit 1
+          fi
+          if [ "${{ inputs.composer_json_mode }}" = "url" ] && [ -z "${{ inputs.composer_json_url }}" ]; then
+            echo "::error::composer_json_url is required when composer_json_mode=url"
+            exit 1
+          fi
+          if [ "${{ inputs.nil_json_mode }}" = "inline" ] && [ -z "${{ inputs.nil_json_content }}" ]; then
+            echo "::error::nil_json_content is required when nil_json_mode=inline"
+            exit 1
+          fi
+          if [ "${{ inputs.nil_json_mode }}" = "url" ] && [ -z "${{ inputs.nil_json_url }}" ]; then
+            echo "::error::nil_json_url is required when nil_json_mode=url"
+            exit 1
+          fi
 
       - name: Create build directory
-        run: mkdir -p "$BUILD_DIR"
+        run: mkdir -p "$BUILD_DIR" "$BUILD_DIR/output"
 
       - name: Provide composer.json
         run: |
           set -euo pipefail
           if [ "${{ inputs.composer_json_mode }}" = "inline" ]; then
-            cat > "$BUILD_DIR/composer.json" <<'COMPOSER_JSON_EOF'
-          ${{ inputs.composer_json_content }}
-          COMPOSER_JSON_EOF
+            printf '%s' '${{ inputs.composer_json_content }}' > "$BUILD_DIR/composer.json"
           else
             curl -fL --retry 3 -o "$BUILD_DIR/composer.json" "${{ inputs.composer_json_url }}"
           fi
           echo "--- composer.json ---"
           cat "$BUILD_DIR/composer.json"
+          echo
           echo "--------------------"
 
       - name: Provide nil.json
         run: |
           set -euo pipefail
           if [ "${{ inputs.nil_json_mode }}" = "inline" ]; then
-            cat > "$BUILD_DIR/nil.json" <<'NIL_JSON_EOF'
-          ${{ inputs.nil_json_content }}
-          NIL_JSON_EOF
+            printf '%s' '${{ inputs.nil_json_content }}' > "$BUILD_DIR/nil.json"
           else
             curl -fL --retry 3 -o "$BUILD_DIR/nil.json" "${{ inputs.nil_json_url }}"
           fi
           echo "--- nil.json ---"
           cat "$BUILD_DIR/nil.json"
+          echo
           echo "-----------------"
 
       - name: Set up PHP
@@ -120,16 +130,33 @@ jobs:
         run: ls -la nil-phar-runtime/
         working-directory: ${{ env.BUILD_DIR }}
 
-      - name: Package vendor as tarball
-        run: tar -czf "$PKG.tar.gz" -C nil-phar-runtime vendor
-        working-directory: ${{ env.BUILD_DIR }}
+      - name: Collect output files
+        run: |
+          set -euo pipefail
+          cp -v nil-phar-runtime/*.phar output/ 2>/dev/null || true
+          shopt -s nullglob dotglob
+          phars=(nil-phar-runtime/*.phar)
+          if [ ${#phars[@]} -eq 0 ]; then
+            echo "::error::No .phar file produced in nil-phar-runtime/"
+            exit 1
+          fi
+          tar -czf "output/${PKG}.tar.gz" -C nil-phar-runtime vendor
+          echo "--- output/ ---"
+          ls -la output/
+          echo "---------------"
 
-      - name: Upload build artifacts
+      - name: Upload phar artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ inputs.artifact_name }}
-          path: |
-            build/nil-phar-runtime/*.phar
-            build/${{ inputs.package_name }}.tar.gz
+          name: ${{ inputs.package_name }}-phar
+          path: build/output/*.phar
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload vendor tarball
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.package_name }}-vendor
+          path: build/output/${{ inputs.package_name }}.tar.gz
           if-no-files-found: error
           retention-days: 30
