@@ -1,0 +1,14 @@
+{
+    "packages": {
+        "phpdocumentor.reflection-docblock": [
+            "phpdocumentor/reflection-docblock",
+            "phpdocumentor/reflection-common",
+            "phpdocumentor/type-resolver",
+            "phpstan/phpdoc-parser",
+            "webmozart/assert"
+        ]
+    },
+    "notuse": [
+        "doctrine/deprecations"
+    ]
+}
