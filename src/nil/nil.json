@@ -34,7 +34,8 @@
         "nil.tools": [
 			"php-nil/db",
 			"php-nil/blog",
-			"php-nil/task"
+			"php-nil/task",
+			"php-nil/api"
         ]
     },
     "convert":"nil.package",

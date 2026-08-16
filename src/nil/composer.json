@@ -25,7 +25,8 @@
         "php-nil/kernel": "dev-main",
         "php-nil/db": "dev-main",
         "php-nil/blog": "dev-main",
-        "php-nil/task": "dev-main"
+        "php-nil/task": "dev-main",
+        "php-nil/api": "dev-main"
     },
 	"repositories": [
         {
@@ -43,6 +44,10 @@
 		{
             "type": "vcs",
             "url": "https://github.com/php-nil/task.git"
+        },
+		{
+            "type": "vcs",
+            "url": "https://github.com/php-nil/api.git"
         }
     ]
 }
