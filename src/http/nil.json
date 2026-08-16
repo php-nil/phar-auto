@@ -1,6 +1,7 @@
 {
     "packages": {
         "http": [
+            "nyholm/psr7",
             "symfony/http-client",
             "php-http/discovery",
             "php-http/multipart-stream-builder"
