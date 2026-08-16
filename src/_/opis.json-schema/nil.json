@@ -1,0 +1,9 @@
+{
+    "packages": {
+        "opis.json-schema": [
+            "opis/json-schema",
+            "opis/string",
+            "opis/uri"
+        ]
+    }
+}
