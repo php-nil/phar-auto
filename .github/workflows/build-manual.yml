@@ -91,6 +91,18 @@ jobs:
         run: php nilpack.phar composer
         working-directory: ${{ env.BUILD_DIR }}
 
+      - name: Generate dependency list JSON
+        run: |
+          set -euo pipefail
+          mkdir -p nil-phar-runtime/vendor
+          jq 'reduce (.packages // [])[] as $p ({}; .[$p.name] = $p.version)' \
+            composer.lock > nil-phar-runtime/vendor/packages.json
+          echo "--- packages.json ---"
+          cat nil-phar-runtime/vendor/packages.json
+          echo
+          echo "--------------------"
+        working-directory: ${{ env.BUILD_DIR }}
+
       - name: List built artifacts
         run: ls -la nil-phar-runtime/
         working-directory: ${{ env.BUILD_DIR }}
