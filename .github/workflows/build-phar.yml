@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        package: [ http, uid ]
+        package: [ http ]
 
     steps:
       - name: Checkout code
