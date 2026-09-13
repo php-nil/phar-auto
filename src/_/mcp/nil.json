@@ -1,0 +1,31 @@
+{
+    "packages": {
+        "mcp": [
+            "mcp/sdk",
+            "opis/json-schema",
+            "opis/string",
+            "opis/uri",
+            "php-http/discovery",
+            "phpdocumentor/reflection-docblock",
+            "phpdocumentor/reflection-common",
+            "phpdocumentor/type-resolver",
+            "phpstan/phpdoc-parser",
+            "webmozart/assert",
+            "symfony/uid",
+            "symfony/polyfill-uuid"
+        ]
+    },
+    "notuse": [
+        "psr/clock",
+        "psr/container",
+        "psr/event-dispatcher",
+        "psr/http-client",
+        "psr/http-factory",
+        "psr/http-message",
+        "psr/http-server-handler",
+        "psr/http-server-middleware",
+        "psr/log",
+        "symfony/deprecation-contracts",
+        "doctrine/deprecations"
+    ]
+}
