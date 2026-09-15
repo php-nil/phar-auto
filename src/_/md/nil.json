@@ -1,0 +1,16 @@
+{
+    "packages": {
+        "league/commonmark": [
+            "league/commonmark",
+            "dflydev/dot-access-data",
+            "league/config",
+            "nette/schema",
+            "nette/utils"
+        ]
+    },
+    "notuse": [
+        "psr/event-dispatcher",
+        "symfony/deprecation-contracts",
+        "symfony/polyfill-php80"
+    ]
+}
