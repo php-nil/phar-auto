@@ -15,8 +15,8 @@ on:
         description: 'extensions to compile (comma separated)'
         type: string
         default: 'ctype,curl,fileinfo,filter,dom,iconv,mbstring,openssl,phar,gd,intl,pdo,pdo_sqlite,pdo_pgsql,apcu,zip,zlib'
-      prefer-pre-built:
-        description: 'prefer pre-built libraries (reduce build time)'
+      prefer-binary:
+        description: 'prefer pre-built binary libraries (reduce build time)'
         type: boolean
         default: true
       with-upx-pack:
@@ -40,7 +40,6 @@ jobs:
 
     steps:
       - name: "Checkout static-php-cli"
-        if: github.repository != 'crazywhalecc/static-php-cli'
         uses: actions/checkout@v7
         with:
           repository: crazywhalecc/static-php-cli
@@ -71,7 +70,7 @@ jobs:
       - name: "Generate hashed key for download cache"
         shell: bash
         run: |
-          INPUT_HASH=$(echo "${{ runner.os }}-${{ inputs.version }}-${{ inputs.extensions }}-${{ env.SPC_WITH_LIBS }}" | sha256sum | awk '{print $1}')
+          INPUT_HASH=$(echo "${{ runner.os }}-${{ inputs.version }}-${{ inputs.extensions }}-$SPC_WITH_LIBS" | sha256sum | awk '{print $1}')
           echo "INPUT_HASH=$INPUT_HASH" >> "$GITHUB_ENV"
 
       - name: "Cache downloaded sources"
@@ -85,11 +84,11 @@ jobs:
         run: bin/spc --version
 
       - name: "Doctor environment"
-        run: bin/spc doctor
+        run: bin/spc doctor --auto-fix
 
-      - name: "Enable pre-built libraries flag"
-        if: inputs.prefer-pre-built == true
-        run: echo "SPC_PRE_BUILT=--prefer-pre-built" >> $env:GITHUB_ENV
+      - name: "Enable prefer-binary flag"
+        if: inputs.prefer-binary == true
+        run: echo "SPC_BINARY=--prefer-binary" >> $env:GITHUB_ENV
 
       - name: "Enable debug flag"
         if: inputs.debug == true
@@ -99,13 +98,9 @@ jobs:
         if: inputs.with-upx-pack == true
         run: echo "SPC_UPX=--with-upx-pack" >> $env:GITHUB_ENV
 
-      - name: "Install UPX"
-        if: inputs.with-upx-pack == true
-        run: bin/spc install-pkg upx
-
       - name: "Download PHP and dependencies"
         if: steps.cache-download.outputs.cache-hit != 'true'
-        run: bin/spc download --with-php="${{ inputs.version }}" --for-extensions="${{ inputs.extensions }}" --with-libs="${{ env.SPC_WITH_LIBS }}" ${{ env.SPC_PRE_BUILT }} ${{ env.SPC_DEBUG }}
+        run: bin/spc download --with-php="${{ inputs.version }}" --for-extensions="${{ inputs.extensions }}" --for-libs="${{ env.SPC_WITH_LIBS }}" ${{ env.SPC_BINARY }} ${{ env.SPC_DEBUG }}
 
       - name: "Build php.exe (cli only)"
         run: bin/spc build --build-cli "${{ inputs.extensions }}" --with-libs="${{ env.SPC_WITH_LIBS }}" ${{ env.SPC_DEBUG }} ${{ env.SPC_UPX }}
@@ -113,7 +108,7 @@ jobs:
       - name: "Resolve built PHP version"
         id: phpinfo
         run: |
-          $PHPINFO = bin/spc dev:info php --json --no-ansi | ConvertFrom-Json
+          $PHPINFO = bin/spc dev:info php --json --no-ansi --no-motd | ConvertFrom-Json
           $PHPVER = $PHPINFO.cache.source.info.version
           if (-not $PHPVER) {
             throw "Cannot resolve PHP version from dev:info php --json"
