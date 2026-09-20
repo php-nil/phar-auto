@@ -1,0 +1,22 @@
+{
+    "packages": {
+        "mailer": [
+            "symfony/mailer",
+            "egulias/email-validator",
+            "doctrine/lexer"
+        ]
+    },
+    "notuse": [
+        "symfony/polyfill-intl-idn",
+        "symfony/event-dispatcher",
+        "psr/event-dispatcher",
+        "symfony/mime",
+        "symfony/service-contracts",
+        "psr/container",
+        "psr/log",
+        "symfony/deprecation-contracts",
+        "symfony/event-dispatcher-contracts",
+        "symfony/polyfill-intl-normalizer",
+        "symfony/polyfill-mbstring"
+    ]
+}
