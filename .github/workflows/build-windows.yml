@@ -94,16 +94,16 @@ jobs:
         if: inputs.debug == true
         run: echo "SPC_DEBUG=--debug" >> $env:GITHUB_ENV
 
-      - name: "Enable UPX pack flag"
-        if: inputs.with-upx-pack == true
-        run: echo "SPC_UPX=--with-upx-pack" >> $env:GITHUB_ENV
-
       - name: "Download PHP and dependencies"
         if: steps.cache-download.outputs.cache-hit != 'true'
         run: bin/spc download --with-php="${{ inputs.version }}" --for-extensions="${{ inputs.extensions }}" --for-libs="${{ env.SPC_WITH_LIBS }}" ${{ env.SPC_BINARY }} ${{ env.SPC_DEBUG }}
 
+      # NOTE: do not pass --with-upx-pack to spc build: UPX runs in-place and is
+      # flaky on GitHub Windows runners (Defender locks php.exe), and SPC treats
+      # an UPX failure as a fatal build error. Compression is a separate step below
+      # with backup/restore so a failed pack never loses the built binary.
       - name: "Build php.exe (cli only)"
-        run: bin/spc build --build-cli "${{ inputs.extensions }}" --with-libs="${{ env.SPC_WITH_LIBS }}" ${{ env.SPC_DEBUG }} ${{ env.SPC_UPX }}
+        run: bin/spc build --build-cli "${{ inputs.extensions }}" --with-libs="${{ env.SPC_WITH_LIBS }}" ${{ env.SPC_DEBUG }}
 
       - name: "Resolve built PHP version"
         id: phpinfo
@@ -114,6 +114,36 @@ jobs:
             throw "Cannot resolve PHP version from dev:info php --json"
           }
           echo "PHPVER=$PHPVER" >> $env:GITHUB_OUTPUT
+
+      - name: "Install UPX"
+        if: inputs.with-upx-pack == true
+        run: bin/spc install-pkg upx
+
+      - name: "Pack php.exe with UPX (fallback to uncompressed on failure)"
+        if: inputs.with-upx-pack == true
+        run: |
+          $php = "buildroot\bin\php.exe"
+          $bak = "buildroot\bin\php.exe.bak"
+          $upx = Get-ChildItem -Path pkgroot -Filter upx.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $upx) {
+            throw "upx.exe not found under pkgroot"
+          }
+          Copy-Item $php $bak -Force
+          & $upx.FullName --best $php
+          $packOk = ($LASTEXITCODE -eq 0)
+          if ($packOk) {
+            & $php -v
+            if ($LASTEXITCODE -ne 0) {
+              Write-Warning "Packed php.exe fails to run, falling back to uncompressed binary"
+              $packOk = $false
+            }
+          }
+          if ($packOk) {
+            Remove-Item -Force $bak
+          } else {
+            Write-Warning "UPX packing failed, keeping the uncompressed php.exe"
+            Move-Item -Force $bak $php
+          }
 
       - name: "Smoke test php.exe"
         run: |
