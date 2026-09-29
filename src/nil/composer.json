@@ -12,7 +12,7 @@
         "symfony/event-dispatcher": "^8.1",
         "symfony/psr-http-message-bridge": "^8.1",
         "symfony/mime": "^8.1",
-        "doctrine/dbal": "^4.4.0",
+        "doctrine/dbal": "~4.4.0",
         "monolog/monolog": "^3.10",
         "psr/clock": "^1.0.0",
         "psr/link": "^2.0.1",
