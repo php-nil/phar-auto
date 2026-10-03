@@ -1,0 +1,128 @@
+name: Manual Build Phar (URL)
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'URL of the combined JSON (contains "composer" and "nil" sections, e.g. src/p/markdown.json)'
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      BUILD_DIR: build
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Create build directory
+        run: mkdir -p "$BUILD_DIR" "$BUILD_DIR/output"
+
+      - name: Download JSON and split into composer.json / nil.json
+        id: prepare
+        env:
+          URL: ${{ inputs.url }}
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 -o "$BUILD_DIR/manifest.json" "$URL"
+          echo "--- manifest.json ---"
+          cat "$BUILD_DIR/manifest.json"
+          echo
+          echo "--------------------"
+
+          if ! jq -e 'has("composer") and has("nil")' "$BUILD_DIR/manifest.json" >/dev/null; then
+            echo "::error::JSON must contain both \"composer\" and \"nil\" sections"
+            exit 1
+          fi
+
+          jq '.composer' "$BUILD_DIR/manifest.json" > "$BUILD_DIR/composer.json"
+          jq '.nil'      "$BUILD_DIR/manifest.json" > "$BUILD_DIR/nil.json"
+
+          PKG=$(jq -r '(.nil.packages // {}) | keys[0] // empty' "$BUILD_DIR/manifest.json")
+          if [ -z "$PKG" ]; then
+            echo "::error::Cannot derive package name: .nil.packages must contain at least one key"
+            exit 1
+          fi
+          echo "pkg=$PKG" >> "$GITHUB_OUTPUT"
+
+          echo "package name: $PKG"
+          echo "--- composer.json ---"
+          cat "$BUILD_DIR/composer.json"
+          echo
+          echo "--- nil.json ---"
+          cat "$BUILD_DIR/nil.json"
+          echo
+          echo "--------------------"
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: phar
+          ini-values: phar.readonly=0
+          tools: composer
+
+      - name: Install dependencies
+        run: composer install --no-dev --optimize-autoloader
+        working-directory: ${{ env.BUILD_DIR }}
+
+      - name: Download nilpack.phar
+        run: curl -fL --retry 3 -o nilpack.phar https://github.com/php-nil/nilpack/releases/latest/download/nilpack.phar
+        working-directory: ${{ env.BUILD_DIR }}
+
+      - name: Build phar
+        run: php nilpack.phar composer
+        working-directory: ${{ env.BUILD_DIR }}
+
+      - name: Generate dependency list JSON
+        run: |
+          set -euo pipefail
+          mkdir -p nil-phar-runtime/vendor
+          jq 'reduce (.packages // [])[] as $p ({}; .[$p.name] = $p.version)' \
+            composer.lock > nil-phar-runtime/vendor/packages.json
+          echo "--- packages.json ---"
+          cat nil-phar-runtime/vendor/packages.json
+          echo
+          echo "--------------------"
+        working-directory: ${{ env.BUILD_DIR }}
+
+      - name: List built artifacts
+        run: ls -la nil-phar-runtime/
+        working-directory: ${{ env.BUILD_DIR }}
+
+      - name: Collect output files
+        working-directory: ${{ env.BUILD_DIR }}
+        env:
+          PKG: ${{ steps.prepare.outputs.pkg }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          phars=(nil-phar-runtime/*.phar)
+          if [ ${#phars[@]} -eq 0 ]; then
+            echo "::error::No .phar file produced in nil-phar-runtime/"
+            exit 1
+          fi
+          cp -v "${phars[@]}" output/
+          tar -czf "output/${PKG}.tar.gz" -C nil-phar-runtime vendor
+          echo "--- output/ ---"
+          ls -la output/
+          echo "---------------"
+
+      - name: Upload phar artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.prepare.outputs.pkg }}-phar.zip
+          path: build/output/*.phar
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload vendor tarball
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.prepare.outputs.pkg }}-vendor.zip
+          path: build/output/${{ steps.prepare.outputs.pkg }}.tar.gz
+          if-no-files-found: error
+          retention-days: 30

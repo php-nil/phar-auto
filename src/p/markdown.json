@@ -1,0 +1,23 @@
+{
+    "composer": {
+        "require": {
+            "league/commonmark": "^2.10.3"
+        }
+    },
+    "nil": {
+        "packages": {
+            "markdown": [
+                "league/commonmark",
+                "league/config",
+                "dflydev/dot-access-data",
+                "nette/schema",
+                "nette/utils"
+            ]
+        },
+        "notuse": [
+            "psr/event-dispatcher",
+            "symfony/deprecation-contracts",
+            "symfony/polyfill-php80"
+        ]
+    }
+}

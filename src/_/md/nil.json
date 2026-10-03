@@ -1,6 +1,6 @@
 {
     "packages": {
-        "league/commonmark": [
+        "markdown": [
             "league/commonmark",
             "dflydev/dot-access-data",
             "league/config",
