@@ -12,4 +12,4 @@ doctrine/dbal 暂时锁定为 4.4.x 版本
 https://raw.githubusercontent.com/php-nil/phar-auto/main/src/p/markdown.json
 ```
 
-工作流会自动下载并拆分为 `composer.json` / `nil.json`，包名取自 `.nil.packages` 的第一个键（如 `markdown`），最终产出 `<包名>-phar.zip` 与 `<包名>-vendor.zip` 两个制品。
+工作流会自动下载并拆分为 `composer.json` / `nil.json`，包名取自 `.nil.packages` 的第一个键（如 `markdown`），最终产出单个制品 `<包名>.zip`（如 `markdown.zip`），内含 `<包名>.phar` 与 `vendor/` 目录。

@@ -95,8 +95,6 @@ jobs:
 
       - name: Collect output files
         working-directory: ${{ env.BUILD_DIR }}
-        env:
-          PKG: ${{ steps.prepare.outputs.pkg }}
         run: |
           set -euo pipefail
           shopt -s nullglob
@@ -106,23 +104,15 @@ jobs:
             exit 1
           fi
           cp -v "${phars[@]}" output/
-          tar -czf "output/${PKG}.tar.gz" -C nil-phar-runtime vendor
+          cp -r nil-phar-runtime/vendor output/vendor
           echo "--- output/ ---"
-          ls -la output/
+          find output | sort
           echo "---------------"
 
-      - name: Upload phar artifacts
+      - name: Upload package
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ steps.prepare.outputs.pkg }}-phar.zip
-          path: build/output/*.phar
-          if-no-files-found: error
-          retention-days: 30
-
-      - name: Upload vendor tarball
-        uses: actions/upload-artifact@v7
-        with:
-          name: ${{ steps.prepare.outputs.pkg }}-vendor.zip
-          path: build/output/${{ steps.prepare.outputs.pkg }}.tar.gz
+          name: ${{ steps.prepare.outputs.pkg }}
+          path: build/output
           if-no-files-found: error
           retention-days: 30
