@@ -5,3 +5,9 @@
 # markdown.json league/commonmark
 https://raw.githubusercontent.com/php-nil/phar-auto/main/src/p/markdown.json
 ```
+
+## spreadsheet
+```
+# spreadsheet.json phpoffice/phpspreadsheet
+https://raw.githubusercontent.com/php-nil/phar-auto/main/src/p/spreadsheet.json
+```

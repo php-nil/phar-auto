@@ -1,0 +1,21 @@
+{
+    "composer": {
+        "require": {
+            "phpoffice/phpspreadsheet": "^5.10.0"
+        }
+    },
+    "nil": {
+        "packages": {
+            "spreadsheet": [
+                "phpoffice/phpspreadsheet",
+                "composer/pcre",
+                "maennchen/zipstream-php",
+                "markbaker/complex",
+                "markbaker/matrix"
+            ]
+        },
+        "notuse": [
+            "psr/simple-cache"
+        ]
+    }
+}
