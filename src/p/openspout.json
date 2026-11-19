@@ -1,0 +1,14 @@
+{
+    "composer": {
+        "require": {
+            "openspout/openspout": "^5.15.1"
+        }
+    },
+    "nil": {
+        "packages": {
+            "openspout": [
+                "openspout/openspout"
+            ]
+        }
+    }
+}
