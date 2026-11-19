@@ -1,0 +1,7 @@
+{
+    "packages": {
+        "openspout": [
+            "openspout/openspout"
+        ]
+    }
+}
